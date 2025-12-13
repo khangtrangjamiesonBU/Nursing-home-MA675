@@ -1,0 +1,74 @@
+---
+title: "clean datasets"
+format: html
+editor: visual
+---
+
+```{r}
+library(tidyverse)
+
+raw <- read_csv("initial_dataset.csv", show_col_types = FALSE)
+```
+
+1.  Replace missing values in transport_type using the most frequent category.
+
+    ```{r}
+    most_common_transport <- raw %>%
+      filter(!is.na(transport_type)) %>%
+      count(transport_type) %>% 
+      arrange(desc(n)) %>% 
+      slice(1) %>% 
+      pull(transport_type)
+
+    most_common_transport
+    ```
+
+Replacing missing transport_type with 2
+
+```{r}
+raw$transport_type[is.na(raw$transport_type)] <- 2
+colSums(is.na(raw))
+```
+
+2.  Deleting rows with \>50% missing data, because those might affect the quality of analysis.
+
+    ```{r}
+    vars <- c("escort_type", "transport_type", "age", "gender",
+                  "facility", "charlson_comorbidity_index", "dementia_yesno")
+
+    raw$na_prop <- rowMeans(is.na(raw[vars]))
+
+    clean <- raw %>% filter(na_prop <= 0.5) %>% select(-na_prop)
+    ```
+
+    ```{r}
+    nrow(raw)
+    nrow(clean)
+    ```
+
+452-427 = 25 rows deleted.
+
+3.  calculate the most frequent escort_type and use it to replace "NA" value.
+
+    ```{r}
+    mode_escort <- clean %>% 
+      filter(!is.na(escort_type)) %>% 
+      count(escort_type) %>% 
+      arrange(desc(n)) %>% 
+      slice(1) %>% 
+      pull(escort_type)
+
+    mode_escort
+    ```
+
+    ```{r}
+    clean$escort_type[is.na(clean$escort_type)] <- 2
+    ```
+
+    ```{r}
+    colSums(is.na(clean))
+    ```
+
+```{r}
+write_csv(clean, "cleaned_dataset.csv")
+```

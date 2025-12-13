@@ -1,0 +1,240 @@
+---
+title: "Microtransition EDA"
+format: html
+editor: visual
+---
+
+## Data Head Description
+
+**Frequency**: frequency of outing
+
+**microtransition_type**: 1 Medical Trip; 2 Non-Medical Trip
+
+**escort_type**:
+
+1 Lay Individual (Family/Friend/etc.)
+
+2 Facility Van Driver
+
+3 Non-Emergent Medical Transport
+
+4 Other (e.g. state-appointed guardian, etc.)
+
+5 Self-checkout (no escort)
+
+**transport_type**:
+
+1 Personal Vehicle
+
+2 Wheelchair Van
+
+3 Stretcher
+
+4 None (i.e., due to parking lot microtransition)
+
+5 Other
+
+**age**: age
+
+**gender**: 1 Male; 2 Female; 3 Other
+
+**facility**: Only 1 since we only have data from 1 facility.
+
+**charlson_comorbidity_index**: An index describe comorbidities, graded from age and diseases.
+
+**dementia_yesno**: 1 Yes; 2 No
+
+## Read Data & add label
+
+```{r}
+library(tidyverse)
+
+df <- read.csv("cleaned_dataset.csv")
+
+# Convert number to labels
+df_clean <- df %>%
+  mutate(
+    # Recode gender: 1=Male, 2=Female, 3=Other
+    gender_label = factor(gender, 
+                          levels = c(1, 2, 3), 
+                          labels = c("Male", "Female", "Other")),
+    
+    # Recode dementia_yesno: 1=Yes, 2=No
+    dementia_label = factor(dementia_yesno, 
+                            levels = c(1, 2), 
+                            labels = c("Dementia", "No Dementia")),
+    
+    # Recode microtransition_type: 1=Medical, 2=Non-Medical
+    trip_type_label = factor(microtransition_type, 
+                             levels = c(1, 2), 
+                             labels = c("Medical Trip", "Non-Medical Trip")),
+    
+    # Recode escort_type
+    escort_label = factor(escort_type, 
+                          levels = c(1, 2, 3, 4, 5), 
+                          labels = c("Lay Individual", "Facility Van", "Medical Transport", "Other", "Self-checkout")),
+    # Recode transport_type
+    transport_label = factor(transport_type, 
+                          levels = c(1, 2, 3, 4, 5), 
+                          labels = c("Personal Vehicle", 
+                                        "Wheelchair Van", 
+                                        "Stretcher", 
+                                        "None (Parking Lot)", 
+                                        "Other"))
+  )
+
+# Save the labeled data to a new CSV file
+write.csv(df_clean, "cleaned_dataset_labeled.csv", row.names = FALSE)
+```
+
+## EDA
+
+### Histograms
+
+#### How is Frequency distributed?
+
+```{r}
+ggplot(df_clean, aes(x = Frequency)) +
+  geom_histogram(binwidth = 1, fill = "blue", color = "black") +
+  ggtitle("Distribution of Outing Frequency") +
+  theme_minimal()
+```
+
+#### How is age distributed?
+
+```{r}
+ggplot(df_clean, aes(x = age)) +
+  geom_histogram(binwidth = 2, fill = "darkgreen", color = "black") +
+  ggtitle("Distribution of Age") +
+  theme_minimal()
+```
+
+#### How is the CCI (Charlson Comorbidity Index) distributed?
+
+```{r}
+ggplot(df_clean, aes(x = charlson_comorbidity_index)) +
+  geom_histogram(binwidth = 1, fill = "purple", color = "black") +
+  ggtitle("Distribution of Charlson Comorbidity Index") +
+  theme_minimal()
+```
+
+### Bar Charts
+
+#### What is the count of each gender?
+
+```{r}
+ggplot(df_clean, aes(x = gender_label, fill = gender_label)) +
+  geom_bar() +
+  ggtitle("Counts of Gender") +
+  theme_minimal()
+```
+
+#### What is the count of dementia status?
+
+```{r}
+ggplot(df_clean, aes(x = dementia_label, fill = dementia_label)) +
+  geom_bar() +
+  ggtitle("Counts of Dementia Status") +
+  theme_minimal()
+```
+
+#### What is the count of trip types?
+
+```{r}
+ggplot(df_clean, aes(x = trip_type_label, fill = trip_type_label)) +
+  geom_bar() +
+  ggtitle("Counts of Trip Types") +
+  theme_minimal()
+```
+
+#### What is the count of escort types?
+
+```{r}
+ggplot(df_clean, aes(x = escort_label, fill = escort_label)) +
+  geom_bar() +
+  ggtitle("Counts of Escort Types") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+#### What is the count of transport types?
+
+```{r}
+ggplot(df_clean, aes(x = transport_label, fill = transport_label)) +
+  geom_bar() +
+  ggtitle("Counts of Transport Type") +
+  xlab("Transport Type") +
+  ylab("Count") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) # Rotate labels
+```
+
+### Frequency vs. Other Variables
+
+#### Does outing Frequency effected by dementia status?
+
+```{r}
+ggplot(df_clean, aes(x = dementia_label, y = Frequency, fill = dementia_label)) +
+  geom_boxplot() +
+  ggtitle("Outing Frequency vs. Dementia Status") +
+  theme_minimal()
+```
+
+#### Does outing Frequency effected by gender?
+
+```{r}
+ggplot(df_clean, aes(x = gender_label, y = Frequency, fill = gender_label)) +
+  geom_boxplot() +
+  ggtitle("Outing Frequency vs. Gender") +
+  theme_minimal()
+```
+
+#### Is Frequency related to age?
+
+```{r}
+ggplot(df_clean, aes(x = age, y = Frequency)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", color = "red") +
+  ggtitle("Outing Frequency vs. Age") +
+  theme_minimal()
+```
+
+#### Is Frequency related to comorbidities?
+
+```{r}
+ggplot(df_clean, aes(x = charlson_comorbidity_index, y = Frequency)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", color = "red") +
+  ggtitle("Outing Frequency vs. Charlson Index") +
+  theme_minimal()
+```
+
+### Other Relationships
+
+#### Does dementia status effected by gender?
+
+```{r}
+ggplot(df_clean, aes(x = gender_label, fill = dementia_label)) +
+  geom_bar(position = "fill") +
+  ggtitle("Proportion of Dementia Status by Gender") +
+  ylab("Proportion") +
+  theme_minimal()
+```
+
+#### Is age related to comorbidities?
+
+```{r}
+ggplot(df_clean, aes(x = age, y = charlson_comorbidity_index)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", color = "blue") +
+  ggtitle("Charlson Index vs. Age") +
+  theme_minimal()
+```
+
+#### Are older individuals more likely to have dementia?
+
+```{r}
+ggplot(df_clean, aes(x = dementia_label, y = age, fill = dementia_label)) +
+  geom_boxplot() +
+  ggtitle("Age Distribution by Dementia Status") +
+  theme_minimal()
+```
